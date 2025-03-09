@@ -1,3 +1,3 @@
-Eu sou o Readme
+Este repositório contém os códigos necessários para os laboratórios de PRJ22.
 
-Todos vocês me lerão.
+LAB1 - Código para plotar gráficos de regressão
