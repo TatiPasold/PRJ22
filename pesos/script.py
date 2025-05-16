@@ -167,7 +167,7 @@ plt.figure(figsize=(14, 10))
 
 plt.plot(AR, W0_list, color='#440154', linewidth=3)
 
-plt.ylabel('Peso Vazio (lb)', fontweight='bold')
+plt.ylabel('MTOW (lb)', fontweight='bold')
 plt.xlabel(
     'Alongamento da asa (m)', fontweight='bold')
 plt.grid(True, linestyle='--', alpha=0.7)
@@ -194,7 +194,7 @@ plt.figure(figsize=(14, 10))
 plt.plot(range_cruise_list, W0_list, color='#440154',
          linewidth=3)
 
-plt.ylabel('Peso Vazio (lb)', fontweight='bold')
+plt.ylabel('MTOW (lb)', fontweight='bold')
 plt.xlabel(
     'Alcance de cruzeiro (m)', fontweight='bold')
 plt.grid(True, linestyle='--', alpha=0.7)
@@ -218,13 +218,21 @@ df_valid = df.dropna(subset=[coluna1, coluna2])
 
 X = df_valid[coluna1].values*1852  # Convertendo de NM para m
 Y = df_valid[coluna2].values
+L = df_valid["Parameter"].values
+# colors = sns.color_palette("viridis", len(L))
+colors = plt.cm.tab20(np.linspace(0, 1, len(L)))
 
-plt.plot(X, Y, color='#567663', marker='o', markersize=8, linewidth=0)
+for i, (x, y, label) in enumerate(zip(X, Y, L)):
+    plt.scatter(x, y, color=colors[i], label=label, s=80)
 
 # Regressão linear
 Z2 = np.polyfit(X, Y, 1)
 p2 = np.poly1d(Z2)
-sns.lineplot(x=np.sort(X), y=p2(np.sort(X)), color='gray', linestyle='dotted',
-             label=f'Regressão Linear: f(x) = {p2[0].round(3)} + {p2[1].round(6)} x', linewidth=3)
+
+plt.plot(np.sort(X), p2(np.sort(X)), color='gray',
+         linestyle='dotted', linewidth=3)
+
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.,
+           fontsize=14, title="Aeronaves do Lab01", title_fontsize=18)
 
 plt.savefig('w0 x range.jpg', dpi=500, bbox_inches='tight')
