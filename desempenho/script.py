@@ -7,6 +7,18 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 
+# Padronizando o tamanho da fontes
+
+plt.rcParams.update({
+    'font.size': 12,             # Tamanho da fonte global
+    'axes.titlesize': 12,        # Título do gráfico
+    'axes.labelsize': 12,        # Labels dos eixos
+    'xtick.labelsize': 12,       # Labels do eixo x
+    'ytick.labelsize': 12,       # Labels do eixo y
+    'legend.fontsize': 12,       # Legenda
+    'figure.titlesize': 12       # Título geral da figura
+})
+
 # Definir uma variavel chamada aircraft que recebe o output da funcao default_aircraft
 aircraft = dt.default_aircraft()
 
@@ -16,15 +28,10 @@ print("Aeronave padrão")
 print("=========================================")
 pprint(aircraft)
 
-# Acessar apenas o sub-dicionario dos parametros geometricos da asa:
-print('\n')
-print("=========================================")
-print("Parâmetros geométricos da asa")
-print("=========================================")
-pprint(aircraft['geo_param']['wing'])
-
 new_dimensions = dt.geometry(aircraft)
 aircraft['dimensions'].update(new_dimensions)
+
+# Parametros de teste
 
 W0_guess = 422712.90000000002328
 T0_guess = 125600
@@ -67,7 +74,9 @@ print("Thrust: ", T0)
 print("Thrust vector: ", T0vec)
 print("S_wlan: ", S_wlan)
 
-Sw = np.arange(80, 140, 5)
+# Figura 1: Gráfico de Thrust vs Wing Area
+
+Sw = np.arange(80, 141, 5)
 
 T01 = []
 T02 = []
@@ -114,24 +123,39 @@ plt.plot(Sw, T05, label=r'$T_{0, FAR 25.121b}$', color=colors[4])
 plt.plot(Sw, T06, label=r'$T_{0, FAR 25.121c}$', color=colors[5])
 plt.plot(Sw, T07, label=r'$T_{0, FAR 25.119}$', color=colors[6])
 plt.plot(Sw, T08, label=r'$T_{0, FAR 25.121d}$', color=colors[7])
-plt.legend()
+plt.legend(loc='upper right')
 plt.xlabel('Área de asa (m²)')
 plt.ylabel('Tração (N)')
 plt.grid(True, linestyle='--', alpha=0.7)
 plt.savefig('thrust_vector_vs_wing_area.png')
 
+# Retornando a aeronave padrão
+
 aircraft = dt.default_aircraft()
 new_dimensions = dt.geometry(aircraft)
 aircraft['dimensions'].update(new_dimensions)
 
-sweeps = np.arange(20, 40, 5)
+# Figura 2: Gráfico de Thrust vs Sweep
+# Figura 3: Gráfico de Wing Area vs Sweep
+
+sweeps = np.arange(20, 41, 5)
 sweeps = sweeps*np.pi/180
 
 T0s = []
 S_wlans = []
-max = []
-T_cris = [r'$T_{0, cruise}$', r'$T_{0, cruise}$', r'$T_{0, FAR 25.111}$', r'$T_{0, FAR 25.121a}$',
-          r'$T_{0, FAR 25.121b}$', r'$T_{0, FAR 25.121c}$', r'$T_{0, FAR 25.119}$', r'$T_{0, FAR 25.121d}$']
+critical_constraints = []
+
+# Labels dos requisitos
+T_crits = [
+    r'$T_{0, TO}$',
+    r'$T_{0, cruise}$',
+    r'$T_{0, FAR 25.111}$',
+    r'$T_{0, FAR 25.121a}$',
+    r'$T_{0, FAR 25.121b}$',
+    r'$T_{0, FAR 25.121c}$',
+    r'$T_{0, FAR 25.119}$',
+    r'$T_{0, FAR 25.121d}$'
+]
 
 for sweep in sweeps:
     aircraft['geo_param']['wing']['sweep'] = sweep
@@ -147,23 +171,36 @@ for sweep in sweeps:
         MLW_frac
     )
 
-    for i in range(len(T0vec)):
-        if T0vec[i] == T0:
-            max = T_cris[i]
+    # Identificar qual requisito foi limitante (T0 máximo do vetor)
+    idx_max = np.argmax(T0vec)
+    constraint = T_crits[idx_max]
 
     T0s.append(T0)
     S_wlans.append(S_wlan)
+    critical_constraints.append(constraint)
+
+# Plot da Figura 2
 
 plt.figure(figsize=(10, 6))
 plt.plot(sweeps*180/np.pi, T0s, label=r'$T_{0}$', color=colors[0])
-plt.annotate(f'Máximo: {max}', xy=(sweeps[np.argmax(T0s)]*180/np.pi, max),
-             xytext=(sweeps[np.argmax(T0s)]*180/np.pi + 2, max + 5000),
-             arrowprops=dict(facecolor='black', shrink=0.05),
-             fontsize=10, color='black')
+
+# Anotar o requisito crítico em cada ponto
+for i in range(len(sweeps)):
+    plt.annotate(
+        critical_constraints[i],
+        xy=(sweeps[i] * 180 / np.pi, T0s[i]),
+        xytext=(sweeps[i] * 180 / np.pi + 0.5, T0s[i] + 1900),
+        fontsize=12,
+        arrowprops=dict(arrowstyle='->', color='black'),
+        ha='center',
+    )
+
 plt.xlabel('Enflechamento (graus)')
 plt.ylabel('Tração (N)')
 plt.grid(True, linestyle='--', alpha=0.7)
 plt.savefig('thrust_vs_aspect_ratio.png')
+
+# Plot da Figura 3
 
 plt.figure(figsize=(10, 6))
 plt.plot(sweeps*180/np.pi, S_wlans, label=r'$S_{wlan}$', color=colors[1])
