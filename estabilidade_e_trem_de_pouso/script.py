@@ -78,6 +78,8 @@ print(f"Alpha_tipback: {alpha_tipback:.2f} rad")
 print(f"Alpha_tailstrike: {alpha_tailstrike:.2f} rad")
 print(f"Phi_overturn: {phi_overturn:.2f} rad")
 
+sweep_origin = aircraft['geo_param']['wing']['sweep']*180 / np.pi  # Convertendo de radianos para graus
+
 # Primeiro vamos variar os enflechamentos
 
 sweeps = np.arange(0, 45, 5)
@@ -120,7 +122,67 @@ plt.axvline(x=0.05, linestyle='--', label=r'SM Aft Limite ($\geq 0.05$)', color 
 plt.xlabel('Margem Estática (SM)')
 plt.ylabel('Enflechamento (graus)')
 
+plt.axhline(y=sweep_origin, linestyle=':', label='Enflechamento da aeronave do caso de testes', color='red')
+
 plt.grid(linestyle='--', alpha=0.7)
 plt.legend()
 plt.tight_layout()
 plt.savefig('sm_vs_sweep.png', dpi=300)
+
+# Mudando a posição do CG de todo o resto da aeronave
+
+xcg = 0.405
+aircraft['weights']['per_xcg_allelse'] = xcg
+new_dimensions = dt.geometry(aircraft)
+aircraft['dimensions'].update(new_dimensions)
+
+sweeps = np.arange(0, 45, 5)
+sweeps = np.radians(sweeps)
+sm_afts = []
+sm_fwds = []
+
+for sweep in sweeps:
+    aircraft['geo_param']['wing']['sweep'] = sweep
+    new_dimensions = dt.geometry(aircraft)
+    aircraft['dimensions'].update(new_dimensions)
+
+    W0, Wf, T0, deltaS_wlan, SM_fwd, SM_aft, b_tank_b_w, frac_nlg_fwd, frac_nlg_aft, alpha_tipback, alpha_tailstrike, phi_overturn = dt.analyze(
+        aircraft, W0_guess, T0_guess,
+        Mach_cruise, altitude_cruise, range_cruise,
+        Mach_altcruise, range_altcruise, altitude_altcruise,
+        loiter_time,
+        altitude_takeoff, distance_takeoff, TO_flap_def, TO_slat_def,
+        altitude_landing, distance_landing, LD_flap_def, LD_slat_def,
+        MLW_frac
+    )
+
+    sm_fwds.append(SM_fwd)
+    sm_afts.append(SM_aft)
+
+# Plot de sm_fwd e sm_aft em funcao do sweep
+
+colors = sns.color_palette("viridis", 2)
+
+plt.figure(figsize=(10, 6))
+plt.plot(sm_fwds, np.degrees(sweeps), label='SM Fwd', color =colors[0])
+plt.plot(sm_afts, np.degrees(sweeps), label='SM Aft', color = colors[1])
+
+# sm_fwd <= 0.30
+plt.axvline(x=0.30, linestyle='--', label=r'SM Fwd Limite ($\leq 0.30$)', color = colors[0])
+
+# sm_aft >= 0.05
+plt.axvline(x=0.05, linestyle='--', label=r'SM Aft Limite ($\geq 0.05$)', color = colors[1])
+
+plt.axhline(y=sweep_origin, linestyle=':', label='Enflechamento da aeronave do caso de testes', color='red')
+
+plt.xlabel('Margem Estática (SM)')
+plt.ylabel('Enflechamento (graus)')
+
+# Fundo amarelo
+
+plt.annotate(f'Posição do CG de todo o resto: {xcg:.3f}', xy =(0.05, 30), xytext=(-0.35, 38), fontsize=12, color='black')
+
+plt.grid(linestyle='--', alpha=0.7)
+plt.legend()
+plt.tight_layout()
+plt.savefig('sm_vs_sweep_xcg_new.png', dpi=300)
